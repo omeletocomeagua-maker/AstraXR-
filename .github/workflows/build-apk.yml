@@ -1,0 +1,44 @@
+name: Build AstraXR APK
+
+on:
+  push:
+    branches: [ "main" ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout do código
+        uses: actions/checkout@v4
+
+      - name: Descompactar o projeto (se foi enviado como .zip)
+        run: |
+          ZIPFILE=$(ls *.zip 2>/dev/null | head -n1 || true)
+          if [ -n "$ZIPFILE" ]; then
+            echo "Encontrado $ZIPFILE — descompactando..."
+            unzip -o "$ZIPFILE" -d .
+          else
+            echo "Nenhum .zip encontrado na raiz — assumindo que os arquivos já estão soltos."
+          fi
+
+      - name: Configurar JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Instalar Gradle 8.7
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.7'
+
+      - name: Build APK debug
+        working-directory: AstraXR
+        run: gradle assembleDebug
+
+      - name: Enviar APK como artefato
+        uses: actions/upload-artifact@v4
+        with:
+          name: AstraXR-debug-apk
+          path: AstraXR/app/build/outputs/apk/debug/app-debug.apk
